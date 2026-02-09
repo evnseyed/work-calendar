@@ -405,8 +405,8 @@ function App() {
       </section>
 
       {isModalOpen && (
-        <div className="modal-backdrop no-print" onClick={handleClose}>
-          <div className="modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-backdrop no-print">
+          <div className="modal">
             <div className="modal-header">
               <div>
                 <div className="modal-title">
@@ -416,8 +416,8 @@ function App() {
                   Неделя {form.week} • {selectedDay} • {selectedTime}
                 </div>
               </div>
-              <button className="ghost" type="button" onClick={handleClose}>
-                Закрыть
+              <button className="modal-close" type="button" onClick={handleClose} aria-label="Закрыть">
+                ✕
               </button>
             </div>
             <form className="modal-form" onSubmit={handleSubmit}>
@@ -521,9 +521,6 @@ function App() {
                     Удалить
                   </button>
                 )}
-                <button className="ghost" type="button" onClick={handleClose}>
-                  Отмена
-                </button>
                 <button className="primary" type="submit">
                   {editingId ? 'Обновить' : 'Сохранить'}
                 </button>
