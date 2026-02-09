@@ -46,7 +46,7 @@ function App() {
     const [h, m] = time.split(':').map(Number)
     const date = new Date()
     date.setHours(h, m, 0, 0)
-    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(date)
+    return new Intl.DateTimeFormat('ru-RU', { timeStyle: 'short' }).format(date)
   }
 
   const times = useMemo(() => {
