@@ -11,6 +11,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  width: min(calc(980px * 2 + 20px), 100%);
+  margin: 0 auto;
 }
 
 .toolbar h1 {
@@ -35,6 +37,7 @@
 .toolbar-actions {
   display: flex;
   gap: 12px;
+  margin-left: auto;
 }
 
 button.primary {
@@ -69,7 +72,7 @@ button.primary {
   table-layout: fixed;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--calendar-shadow);
   border: 1px solid var(--border);
 }
 
