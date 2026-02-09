@@ -158,6 +158,10 @@ button.primary {
   text-overflow: ellipsis;
 }
 
+:root:not([data-theme='light']) .event-title {
+  color: #fff;
+}
+
 .event-time {
   font-size: 10px;
   opacity: 0.85;

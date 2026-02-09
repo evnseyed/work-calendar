@@ -41,6 +41,16 @@ function App() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
   }
 
+  const formatTime = (time: string) => {
+    const [h, m] = time.split(':').map(Number)
+    const date = new Date()
+    date.setHours(h, m, 0, 0)
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date)
+  }
+
   const times = useMemo(() => {
     const result: string[] = []
     const startMinutes = timeToMinutes(scheduleStart)
@@ -343,7 +353,7 @@ function App() {
               <tbody>
                 {times.map((time, rowIndex) => (
                   <tr key={`${week}-${time}`}>
-                    <th className="time-col">{time}</th>
+                    <th className="time-col">{formatTime(time)}</th>
                     {days.map((day) => {
                       const dayCoverage = coverageByWeek[week].get(day)
                       const eventId = dayCoverage?.byIndex[rowIndex] ?? null
@@ -413,7 +423,7 @@ function App() {
                   {editingId ? 'Редактирование события' : 'Новое событие'}
                 </div>
                 <div className="modal-subtitle">
-                  Неделя {form.week} • {selectedDay} • {selectedTime}
+                  Неделя {form.week} • {selectedDay} • {selectedTime ? formatTime(selectedTime) : ''}
                 </div>
               </div>
               <button className="modal-close" type="button" onClick={handleClose} aria-label="Закрыть">
