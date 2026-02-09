@@ -15,6 +15,7 @@ type CalendarEvent = {
 function App() {
   const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
   const slotMinutes = 30
+  const defaultDurationMinutes = 60
   const scheduleStart = '10:00'
   const scheduleEnd = '20:00'
   const weeks: Array<1 | 2> = [1, 2]
@@ -45,10 +46,7 @@ function App() {
     const [h, m] = time.split(':').map(Number)
     const date = new Date()
     date.setHours(h, m, 0, 0)
-    return new Intl.DateTimeFormat(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date)
+    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(date)
   }
 
   const times = useMemo(() => {
@@ -64,7 +62,6 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
-  const [selectedWeek, setSelectedWeek] = useState<1 | 2>(1)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const stored = window.localStorage.getItem('work-calendar-theme')
@@ -79,7 +76,7 @@ function App() {
     title: '',
     note: '',
     color: defaultColor,
-    week: 1 as 1 | 2,
+    weeks: [1 as 1 | 2],
   })
   const [error, setError] = useState('')
 
@@ -116,8 +113,7 @@ function App() {
 
   const handleOpen = (week: 1 | 2, day: string, time: string) => {
     const startMinutes = timeToMinutes(time)
-    const defaultEnd = minutesToTime(startMinutes + slotMinutes)
-    setSelectedWeek(week)
+    const defaultEnd = minutesToTime(startMinutes + defaultDurationMinutes)
     setSelectedDay(day)
     setSelectedTime(time)
     setEditingId(null)
@@ -127,7 +123,7 @@ function App() {
       title: '',
       note: '',
       color: defaultColor,
-      week,
+      weeks: [week],
     })
     setError('')
     setIsModalOpen(true)
@@ -141,7 +137,6 @@ function App() {
   const handleEditOpen = (eventId: string) => {
     const found = events.find((entry) => entry.id === eventId)
     if (!found) return
-    setSelectedWeek(found.week)
     setSelectedDay(found.day)
     setSelectedTime(found.start)
     setEditingId(found.id)
@@ -151,7 +146,7 @@ function App() {
       title: found.title,
       note: found.note,
       color: found.color ?? defaultColor,
-      week: found.week,
+      weeks: [found.week],
     })
     setError('')
     setIsModalOpen(true)
@@ -184,9 +179,17 @@ function App() {
       return
     }
 
+    const selectedWeeks = Array.from(new Set(form.weeks)).filter(
+      (week): week is 1 | 2 => week === 1 || week === 2,
+    )
+    if (selectedWeeks.length === 0) {
+      setError('Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ Ð½ÐµÐ´ÐµÐ»ÑŽ.')
+      return
+    }
+
     const overlap = events.some((entry) => {
       if (editingId && entry.id === editingId) return false
-      if (entry.week !== form.week) return false
+      if (!selectedWeeks.includes(entry.week)) return false
       if (entry.day !== selectedDay) return false
       const entryStart = timeToMinutes(entry.start)
       const entryEnd = timeToMinutes(entry.end)
@@ -198,35 +201,51 @@ function App() {
     }
 
     if (editingId) {
-      setEvents((prev) =>
-        prev.map((entry) =>
-          entry.id === editingId
-            ? {
-                ...entry,
-                week: form.week,
-                day: selectedDay,
-                start: form.start,
-                end: form.end,
-                title: form.title.trim(),
-                note: form.note.trim(),
-                color: form.color,
-              }
-            : entry,
-        ),
-      )
+      setEvents((prev) => {
+        const current = prev.find((entry) => entry.id === editingId)
+        if (!current) return prev
+        const next: CalendarEvent[] = prev.filter((entry) => entry.id !== editingId)
+        if (selectedWeeks.includes(current.week)) {
+          next.push({
+            ...current,
+            week: current.week,
+            day: selectedDay,
+            start: form.start,
+            end: form.end,
+            title: form.title.trim(),
+            note: form.note.trim(),
+            color: form.color,
+          })
+        }
+        selectedWeeks
+          .filter((week) => week !== current.week)
+          .forEach((week) => {
+            next.push({
+              id: `${week}-${selectedDay}-${form.start}-${form.end}-${Date.now()}`,
+              week,
+              day: selectedDay,
+              start: form.start,
+              end: form.end,
+              title: form.title.trim(),
+              note: form.note.trim(),
+              color: form.color,
+            })
+          })
+        return next
+      })
     } else {
       setEvents((prev) => [
         ...prev,
-        {
-          id: `${form.week}-${selectedDay}-${form.start}-${form.end}-${Date.now()}`,
-          week: form.week,
+        ...selectedWeeks.map((week) => ({
+          id: `${week}-${selectedDay}-${form.start}-${form.end}-${Date.now()}`,
+          week,
           day: selectedDay,
           start: form.start,
           end: form.end,
           title: form.title.trim(),
           note: form.note.trim(),
           color: form.color,
-        },
+        })),
       ])
     }
     setIsModalOpen(false)
@@ -423,7 +442,7 @@ function App() {
                   {editingId ? 'Редактирование события' : 'Новое событие'}
                 </div>
                 <div className="modal-subtitle">
-                  Неделя {form.week} • {selectedDay} • {selectedTime ? formatTime(selectedTime) : ''}
+                  Неделя {form.weeks.join(', ')} • {selectedDay} • {selectedTime ? formatTime(selectedTime) : ''}
                 </div>
               </div>
               <button className="modal-close" type="button" onClick={handleClose} aria-label="Закрыть">
@@ -467,23 +486,31 @@ function App() {
                   required
                 />
               </label>
-              <label className="span-2">
-                Неделя
+              <div className="span-2">
+                <div className="field-label">Неделя</div>
                 <div className="week-toggle">
-                  {weeks.map((week) => (
-                    <label key={week} className={`week-option${form.week === week ? ' selected' : ''}`}>
-                      <input
-                        type="radio"
-                        name="eventWeek"
-                        value={week}
-                        checked={form.week === week}
-                        onChange={() => setForm({ ...form, week })}
-                      />
-                      Неделя {week}
-                    </label>
-                  ))}
+                  {weeks.map((week) => {
+                    const isSelected = form.weeks.includes(week)
+                    return (
+                      <label key={week} className={`week-option${isSelected ? ' selected' : ''}`}>
+                        <input
+                          type="checkbox"
+                          name="eventWeeks"
+                          value={week}
+                          checked={isSelected}
+                          onChange={() => {
+                            const next = isSelected
+                              ? form.weeks.filter((value) => value !== week)
+                              : [...form.weeks, week]
+                            setForm({ ...form, weeks: next })
+                          }}
+                        />
+                        Неделя {week}
+                      </label>
+                    )
+                  })}
                 </div>
-              </label>
+              </div>
               <label className="span-2">
                 Название
                 <input
