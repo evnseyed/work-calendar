@@ -56,6 +56,11 @@ function App() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<1 | 2>(1)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const stored = window.localStorage.getItem('work-calendar-theme')
+    if (stored === 'light' || stored === 'dark') return stored
+    return 'dark'
+  })
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
   const [form, setForm] = useState({
@@ -88,6 +93,11 @@ function App() {
     }
     setHasLoaded(true)
   }, [defaultColor])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('work-calendar-theme', theme)
+  }, [theme])
 
   useEffect(() => {
     if (!hasLoaded) return
@@ -301,6 +311,13 @@ function App() {
     <div className="app">
       <header className="toolbar no-print">
         <div className="toolbar-actions">
+          <button
+            className="ghost"
+            type="button"
+            onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+          >
+            Тема: {theme === 'dark' ? 'тёмная' : 'светлая'}
+          </button>
           <button className="primary" onClick={() => window.print()}>
             Печать
           </button>
